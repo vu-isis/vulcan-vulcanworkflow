@@ -1,0 +1,383 @@
+<!--
+<link rel="import" href="../../polymer/polymer.html">
+
+<link rel="import" href="../../gold-email-input/gold-email-input.html">
+
+<link rel="import" href="../../iron-ajax/iron-ajax.html">
+<link rel="import" href="../../iron-icon/iron-icon.html">
+<link rel="import" href="../../iron-icons/iron-icons.html">
+
+<link rel="import" href="../../paper-autocomplete/paper-autocomplete.html">
+<link rel="import" href="../../paper-button/paper-button.html">
+<link rel="import" href="../../paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../paper-dialog/paper-dialog.html">
+<link rel="import" href="../../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../paper-input/paper-input.html">
+<link rel="import" href="../../paper-input/paper-textarea.html">
+<link rel="import" href="../../paper-tooltip/paper-tooltip.html">
+
+<link rel="import" href="../dialog_style.html">
+<link rel="import" href="../vf-styles.html">
+-->
+
+<dom-module id="vw-workflow-invite-users">
+    <style is="custom-style" include="vf-styles"></style>
+    <style include="dialog_style">
+        paper-autocomplete {
+            --paper-input-container-underline-focus: {
+                background-color: var(--pitch);
+            }
+            --paper-input-container-label-focus: {
+                color:  var(--interactive);
+            }
+        }
+        paper-autocomplete[invalid] {
+            --paper-input-container-underline-focus: {
+                background-color: var(--danger);
+            }
+            --paper-input-container-underline: {
+                background-color: var(--danger);
+            }
+            --paper-input-container-label: {
+                color: var(--danger);
+            }
+            --paper-input-container-label-focus: {
+                color: var(--danger);
+            }
+        }
+        paper-dialog{
+            color: var(--pitch);
+        }
+        paper-dialog .heading {
+            background-color: var(--headingbar);
+            color: var(--interactive);
+            margin-top: 0;
+            padding: 0 8px;
+        }
+        paper-dialog .heading #header-label {
+            color: var(--pristine);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        paper-dialog .heading #close {
+            min-width: 3em;
+            padding-right: 0;
+        }
+        paper-dialog #send-control {
+            margin-top: 16px;
+            margin-bottom: 0;
+            padding: 1em;
+            background-color: var(--subheadingbar);
+        }
+        paper-dialog {
+            margin: 0;
+            padding: 0;
+            width: 500px;
+            height: 400px;
+        }
+        paper-dialog #sections {
+            margin: 0;
+            padding: 0 8px;
+            margin-bottom: 8px;
+            height: 100%;
+            overflow: auto;
+        }
+        paper-dialog .instructions {
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+        paper-dialog .subheading {
+            background-color: var(--subheadingbar);
+            font-size: 16px;
+            font-style: normal;
+            font-weight: bold;
+            padding: 4px 2px;
+            margin: 12px 0;
+        }
+        paper-dialog .subheading .flex {
+           margin-top: 4px;
+        }
+        paper-dialog #heading-icon {
+            color: var(--interactive);
+            margin-right: 8px;
+        }
+        paper-dialog .subheading-icon {
+            color: var(--interactive);
+            margin-right: 4px;
+        }
+        paper-dialog .invitee-label-icon {
+            color: var(--pitch);
+            margin-right: 4px;
+            margin-top: 18px;
+        }
+        paper-dialog .invitee-icon {
+            color: var(--interactive);
+            margin-right: 4px;
+            margin-top: 18px;
+        }
+        paper-dialog .team-icon {
+            height: 80px;
+            width: 80px;
+            margin: 8px 24px;
+            color: var(--interactive);
+        }
+        paper-dialog .action {
+            min-width: 3em;
+            cursor: pointer;
+        }
+        paper-dialog .optional {
+            font-style: normal;
+            margin-right: 8px;
+            font-size: 14px;
+            color: var(--subheadingtext);
+        }
+        paper-dialog #invitation-controls {
+            margin-top: 8px;
+        }
+        paper-dialog .invitations {
+            padding-bottom: 20px;
+        }
+        #summary-feedback,
+        #parent-feedback,
+        #name-feedback {
+            display: none;
+        }
+        p.skimpy {
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+        paper-dialog .feedback {
+            padding: .5em;
+        }
+        paper-dialog .feedback-icon {
+            color: var(--danger);
+            margin-right: 4px;
+        }
+        paper-dialog .feedback-text {
+            color: var(--subheadingtext);
+        }
+        paper-dialog .imaging {
+            min-height: 220px;
+        }
+        paper-dialog .imaging-content {
+            min-height: 92px;
+        }
+        gold-email-input, paper-input, paper-textarea {
+            --paper-input-container-underline-focus: {
+                background-color: var(--pitch);
+            }
+            --paper-input-container-label-focus: {
+                color: var(--interactive);
+            }
+        }
+        paper-tooltip {
+            --paper-tooltip: {
+                font-style: normal;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+        paper-checkbox {
+            --paper-checkbox-checked-color: var(--pitch);
+        }
+        @media (max-width: 480px) {
+            paper-dialog {
+                width: 360px;
+            }
+        }
+        @media (max-width: 320px) {
+            paper-dialog {
+                width: 300px;
+            }
+        }
+    </style>
+    <template>
+        <iron-ajax id="usersloader" last-response="{{users}}"></iron-ajax>
+        <iron-ajax id="teamsloader" last-response="{{teams}}"></iron-ajax>
+        <paper-dialog id="createdialog" class="layout vertical flex" modal>
+            <div class="heading layout horizontal center-center">
+                <iron-icon id="heading-icon" icon="social:person-add"></iron-icon>
+                <div id="header-label" class="flex">Invite Users to {{kind}}</div>
+                <paper-button id="close" dialog-dismiss><iron-icon icon="close"></iron-icon></paper-button>
+                <paper-tooltip for="close" position="left">Cancel</paper-tooltip>
+            </div>
+            <div id="sections" class="flex">
+                <div class="subheading layout horizontal center-center">
+                    <iron-icon class="subheading-icon" icon="social:people"></iron-icon>
+                    <div class="flex">Invite Members</div>
+                    <div class="optional">optional</div>
+                </div>
+                <div class="instructions flex">
+                    Invite users from your participating team by name.
+                </div>
+                <div id="invitation-controls" class="layout horizontal center-center">
+                    <paper-button id="add-user" class="action" raised on-tap="_addInvitee">
+                        <iron-icon icon="social:group-add"></iron-icon>
+                    </paper-button>
+                    <paper-tooltip for="add-user" position="left">Invite team user</paper-tooltip>
+                </div>
+                <div class="invitations flex">
+                    <template id="repeater" is="dom-repeat" items="{{invitees}}">
+                        <div class="layout horizontal center flex">
+                            <iron-icon class="invitee-label-icon" icon="{{_getInviteeIcon(item)}}"></iron-icon>
+                            <template is="dom-if" if="{{_isUser(item)}}">
+                                <paper-autocomplete id="name" label="Name" source="{{userAutoCompleteItems}}"
+                                                    value="{{item.name}}" invalid
+                                                    event-namespace="."
+                                                    on-autocomplete.blur="_userCheck"
+                                                    on-autocomplete.selected="_userSelected"
+                                                    class="flex"></paper-autocomplete>
+                            </template>
+                            <template is="dom-if" if="{{!_isUser(item)}}">
+                                <gold-email-input id="email" class="flex" label="Email Address" value="{{item.name}}" auto-validate></gold-email-input>
+                            </template>
+                            <iron-icon id="delete-invite" class="action invitee-icon" icon="icons:delete" on-tap="_removeInvitee"></iron-icon>
+                            <paper-tooltip for="delete-invite" position="left">Delete invitation</paper-tooltip>
+                        </div>
+                    </template>
+                </div>
+                <paper-textarea id="invitation_text" label="Custom Invitation Message" value="Please join my {{_lowerCase(kind)}}."></paper-textarea>
+            </div>
+            <div id="send-control" class="layout horizontal center-center">
+                <paper-button id="send" raised tabindex="-1" on-tap="_processRequest">
+                    <div class="container layout horizontal center-center">
+                        <iron-icon icon="check-circle"></iron-icon>
+                        <div class="label" style="margin-left: 6px; padding-right: 3px;">Submit</div>
+                    </div>
+                </paper-button>
+            </div>
+            </paper-dialog>
+        </paper-dialog>
+    </template>
+    <script>
+        (function () {
+            Polymer({
+                is: "vw-workflow-invite-users",
+                properties: {
+                    kind: {
+                        type: String,
+                        value: "Workflow"
+                    },
+                    parent: String,
+                    nonce: String,
+                    users: Object,
+                    teams: Object,
+                    screen: Object,
+                    nameFeedback: String,
+                    invitees: {
+                        type: Array,
+                        value: function() { return []; }
+                    },
+                    userAutoCompleteItems: {
+                        type: Array,
+                        computed: "_makeUserAutoCompleteItems(users)"
+                    }
+                },
+                showDialog: function(kind, parent) {
+                    this.$.usersloader.url = "eligible_users";
+                    this.$.usersloader.generateRequest();
+                    this.$.createdialog.toggle();
+                    this.$.createdialog.notifyResize();
+                },
+                _makeUserAutoCompleteItems: function(users) {
+                    var items = [];
+                    for (var t in users) {
+                        items.push({text: t, value: t});
+                    }
+                    return items.sort(function(a, b) {
+                        return a.text.localeCompare(b.text);
+                    });
+                },
+                _makeUserAddresses: function(users) {
+                    var addresses = {};
+                    for (var u in users) {
+                        addresses[users[u].email] = u;
+                    }
+                },
+                _lowerCase: function(s) {
+                    return s.toLowerCase();
+                },
+                _userCheck: function(e) {
+                    var name = e.detail.text;
+                    var valid = name in this.users;
+                    if (valid) {
+                        e.target.removeAttribute('invalid');
+                    } else {
+                        e.target.setAttribute('invalid', true);
+                    }
+                    this.updateStyles();
+                },
+                _userSelected: function(e) {
+                    e.target.removeAttribute('invalid');
+                    this.updateStyles();
+                },
+                _addInvitee: function() {
+                    this.unshift('invitees', {type: "user", name: "", isAdmin: false});
+                },
+                _addEmailInvitee: function() {
+                    this.unshift('invitees', {type: "email", name: "", isAdmin: false});
+                },
+                _isUser: function(item) {
+                    return item.type == "user";
+                },
+                _removeInvitee: function(e) {
+                    var model = e.model;
+                    var index = this.invitees.indexOf(model.item);
+                    this.splice('invitees', index, 1)
+                },
+                _getInviteeIcon: function(item) {
+                   return (item.type == 'user') ? "social:person" : "icons:mail";
+                },
+                _processRequest: function() {
+                    var dialog = this.$.createdialog;
+                    var formData = new FormData();
+                    formData.append("_session_id", this.nonce);
+                    if (this.invitees.length) {
+                        var validated_invitees = [];
+                        var email_regex = /^\S+@\S+$/i;
+                        for (var i=0; i<this.invitees.length; i++) {
+                            var invitee = this.invitees[i];
+                            if (invitee.type == 'user') {
+                                if (invitee.name && invitee.name in this.users) {
+                                    validated_invitees.push({
+                                        username: this.users[invitee.name].username,
+                                        project_id: this.users[invitee.name].project_id,
+                                        isAdmin: false
+                                    });
+                                }
+                            }
+                        }
+                        if (validated_invitees.length) {
+                            var msg = this.querySelector("#invitation_text");
+                            formData.append("invitation_msg", msg.value);
+                            formData.append("invitees", JSON.stringify(validated_invitees));
+                        }
+                    }
+                    var xhr = new XMLHttpRequest();
+                    xhr.domHost = this;
+                    xhr.onload = function(e) {
+                        var toast = document.querySelector("paper-toast#toast-notification");
+                        var host = e.target.domHost;
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            var ret = (typeof xhr.response == 'string') ? JSON.parse(xhr.response) : xhr.response;
+                            if (ret.status == 'success') {
+                                toast.show({text: host.kind + " invitations issued", duration: 3000});
+                                location.reload(true);
+                            } else {
+                                toast.show({text: host.kind + " invitations failed", duration: 3000});
+                            }
+                        } else {
+                            toast.show({text: host.kind + " invitations failed", duration: 3000});
+                        }
+                    };
+                    var url = "do_invite_users";
+                    xhr.open("POST", url, true);
+                    xhr.responseType = "json";
+                    xhr.send(formData);
+                    dialog.close();
+                }
+            });
+        })();
+    </script>
+
+</dom-module>

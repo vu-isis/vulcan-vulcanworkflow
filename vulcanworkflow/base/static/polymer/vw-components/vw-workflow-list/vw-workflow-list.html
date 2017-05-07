@@ -1,0 +1,405 @@
+<!--
+<link rel="import" href="../../polymer/polymer.html">
+
+<link rel="import" href="../../gold-email-input/gold-email-input.html">
+
+<link rel="import" href="../../iron-ajax/iron-ajax.html">
+<link rel="import" href="../../iron-icon/iron-icon.html">
+<link rel="import" href="../../iron-icons/iron-icons.html">
+
+<link rel="import" href="../../paper-autocomplete/paper-autocomplete.html">
+<link rel="import" href="../../paper-button/paper-button.html">
+<link rel="import" href="../../paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../paper-dialog/paper-dialog.html">
+<link rel="import" href="../../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../paper-input/paper-input.html">
+<link rel="import" href="../../paper-input/paper-textarea.html">
+<link rel="import" href="../../paper-tooltip/paper-tooltip.html">
+
+<link rel="import" href="../../file-upload/file-upload.html">
+<link rel="import" href="../vf-tool-stat/vf-tool-stat.html">
+<link rel="import" href="../dialog_style.html">
+<link rel="import" href="../vf-styles.html">
+-->
+
+<dom-module id="vw-workflow-item">
+    <style is="custom-style" include="vf-styles">
+        .content {
+            background-color: var(--diffuse);
+            padding: .75em;
+            padding-top: 1em;
+            margin-right: 12px;
+            margin-left: 40px;
+        }
+        .invite-control paper-icon-button,
+        a paper-icon-button,
+        a:active paper-icon-button,
+        a:visited paper-icon-button {
+          color: var(--subheadingtext);
+        }
+        paper-tooltip {
+            --paper-tooltip: {
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+        .workflow-icon {
+            margin-right: 8px;
+        }
+        .undersize-icon {
+            height: 35px;
+            width: 35px;
+        }
+        .oversize-icon {
+            height: 45px;
+            width: 45px;
+            margin-top: 1px;
+        }
+        paper-checkbox#pref {
+            margin-left: 4px;
+            margin-bottom: 4px;
+            --paper-checkbox-checked-color: var(--interactive);
+        }
+        paper-checkbox.hidden {
+            display: none;
+        }
+        span#pname.greyed {
+            color: var(--diffuse);
+        }
+        @media (max-width: 320px) {
+            .admin-control {
+                display: none;
+            }
+        }
+    </style>
+    <template>
+        <div class="layout horizontal center-center">
+            <paper-checkbox id="pref" class="hidden" checked$="{{workflow.pref}}" noink on-change="_prefChange"></paper-checkbox>
+            <paper-tooltip for="pref" position="right">Keep on Dashboard"</paper-tooltip>
+            <paper-button-link href="[[workflow.url]]" class="layout horizontal center flex">
+                <div class="layout horizontal center left-justify flex">
+                    <iron-icon src="[[workflow.icon_url]]" role="img" class="workflow-icon"></iron-icon>
+                    <span id="pname" class$="{{_nameClass(workflow.pref)}}">{{workflow.name}}</span>
+                </div>
+            </paper-button-link>
+            <div class="layout horizontal center">
+                <template is="dom-if" if="[[workflow.new]]">
+                    <a class="activity_link" href="/dashboard/activity_feed/select/[[workflow.project_id]]">
+                        <vf-badge id="badge" count="{{workflow.new}}"></vf-badge>
+                        <paper-tooltip for="badge" position="left">Workflow has [[workflow.new]] new [[_pluralize('item', workflow.new)]]</paper-tooltip>
+                    </a>
+                </template>
+                <template is="dom-if" if="[[workflow.can_admin]]">
+                    <a class="admin-control" href="[[workflow.url]]admin/tools" tabindex="=1">
+                        <paper-icon-button icon="icons:build" class="undersize-icon"></paper-icon-button>
+                        <paper-tooltip position="left">Manage tools</paper-tooltip>
+                    </a>
+                    <template is="dom-if" if="[[workflow.can_admin_workflow]]">
+                        <div class="invite-control">
+                            <paper-icon-button id="invite" icon="social:group-add" class="admin-icon oversize-icon" on-tap="_inviteTeams"></paper-icon-button>
+                            <paper-tooltip for="invite" position="left">Invite Teams</paper-tooltip>
+                        </div>
+                    </template>
+                    <div class="invite-control">
+                        <paper-icon-button id="invite" icon="social:person-add" class="admin-icon" on-tap="_inviteUsers"></paper-icon-button>
+                        <paper-tooltip for="invite" position="left">Invite Users</paper-tooltip>
+                    </div>
+                </template>
+                <paper-icon-button id="expand-toggle" class="toogle" icon="[[_toggleIcon]]" on-tap="_toggleOpened"></paper-icon-button>
+                <paper-tooltip for="expand-toggle" position="left">Show/Hide Details</paper-tooltip>
+            </div>
+        </div>
+        <iron-collapse id="collapse" opened="{{opened}}">
+            <div class="content">
+                <div class="layout horizontal center wrap">
+                    <template is="dom-if" if="[[workflow.tool_info.wfhome]]">
+                        <vf-tool-stat label="members" icon="social:people"
+                                   count="[[ workflow.tool_info.wfhome.all ]]"
+                                   unseen="[[ workflow.tool_info.wfhome.new ]]"
+                                   href="[[ workflow.tool_info.wfhome.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[workflow.tool_info.Downloads.all]]">
+                        <vf-tool-stat label="files" icon="icons:description"
+                                   count="[[ workflow.tool_info.Downloads.all ]]"
+                                   unseen="[[ workflow.tool_info.Downloads.new ]]"
+                                   href="[[ workflow.tool_info.Downloads.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[ workflow.tool_info.Discussion.all ]]">
+                        <vf-tool-stat label="posts" icon="communication:forum"
+                                   count="[[ workflow.tool_info.Discussion.all ]]"
+                                   unseen="[[ workflow.tool_info.Discussion.new ]]"
+                                   href="[[ workflow.tool_info.Discussion.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[ workflow.tool_info.Tickets.all ]]">
+                        <vf-tool-stat label="issues" icon="icons:turned-in"
+                                   count="[[ workflow.tool_info.Tickets.all ]]"
+                                   unseen="[[ workflow.tool_info.Tickets.new ]]"
+                                   href="[[ workflow.tool_info.Tickets.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[ workflow.tool_info.Wiki.all ]]">
+                        <vf-tool-stat label="pages" icon="communication:import-contacts"
+                                   count="[[ workflow.tool_info.Wiki.all ]]"
+                                   unseen="[[ workflow.tool_info.Wiki.new ]]"
+                                   href="[[ workflow.tool_info.Wiki.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[ workflow.tool_info.Git.all ]]">
+                        <vf-tool-stat label="Git commits" icon="vaadin-icons:folder-open"
+                                   count="[[ workflow.tool_info.Git.all ]]"
+                                   unseen="[[ workflow.tool_info.Git.new ]]"
+                                   href="[[ workflow.tool_info.Git.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                    <template is="dom-if" if="[[ workflow.tool_info.Svn.all ]]">
+                        <vf-tool-stat label="Svn commits" icon="vaadin-icons:folder-open-o"
+                                   count="[[ workflow.tool_info.Svn.all ]]"
+                                   unseen="[[ workflow.tool_info.Svn.new ]]"
+                                   href="[[ workflow.tool_info.Svn.url ]]"
+                                   tiptemplate="Workflow has %count% %label%">
+                        </vf-tool-stat>
+                    </template>
+                </div>
+            </div>
+        </iron-collapse>
+        <vw-workflow-invite-users id="invite-users" nonce="{{nonce}}"></vw-workflow-invite-users>
+        <vw-workflow-invite-teams id="invite-teams" nonce="{{nonce}}" data="{{workflow}}"></vw-workflow-invite-teams>
+    </template>
+    <script>
+        (function () {
+            Polymer({
+                is: "vw-workflow-item",
+                properties: {
+                    workflow: Object,
+                    opened: Boolean,
+                    nonce: String,
+                    _toggleIcon: {
+                        type: String,
+                        computed: '_computeToggleIcon(opened)'
+                    }
+                },
+                _toggleOpened: function(e) {
+                    this.opened = !this.opened;
+                },
+                _computeToggleIcon: function(opened) {
+                    return opened ? 'icons:expand-less' : 'icons:expand-more';
+                },
+                _newCount: function(count) {
+                    return (count < 100) ? count : "99+";
+                },
+                _pluralize: function(s, count) {
+                    return (count == 1) ? s : s + 's';
+                },
+                togglePref: function(flag) {
+                    this.querySelector("#pref").toggleClass('hidden', flag);
+                    this.updateStyles();
+                },
+                _prefChange: function(e) {
+                    this.workflow.pref = e.target.checked;
+                    this.toggleClass('greyed', !e.target.checked, this.$.pname);
+                    this.updateStyles();
+                },
+                _nameClass: function(pref) {
+                    return (pref) ? "" : "greyed";
+                },
+                _inviteUsers: function() {
+                    this.querySelector("vw-workflow-invite-users").showDialog();
+                },
+                _inviteTeams: function() {
+                    this.querySelector("vw-workflow-invite-teams").showDialog();
+                }
+            });
+        })();
+    </script>
+</dom-module>
+
+<dom-module id="vw-workflow-list">
+    <style is="custom-style" include="vf-styles">
+        .list-container {
+            height: 318px;
+            overflow: auto;
+        }
+        .sorter {
+            font-style: italic;
+            font-size: 11px;
+        }
+        #sort-by-left {
+            color: var(--pristine);
+            margin-right: 8px;
+        }
+        #sort-by-right {
+            color: var(--pristine);
+        }
+        .empty-message {
+            color: var(--toptext);
+            fill: var(--toptext);
+            text-align: center;
+            height: 318px;
+        }
+        paper-toggle-button {
+            --paper-toggle-button-checked-bar-color: var(--diffuse);
+            --paper-toggle-button-checked-button-color: var(--pristine);
+            --paper-toggle-button-checked-ink-color: var(--pristine);
+            --paper-toggle-button-unchecked-bar-color: var(--diffuse);
+            --paper-toggle-button-unchecked-button-color: var(--pristine);
+            --paper-toggle-button-unchecked-ink-color: var(--pristine);
+            --paper-toggle-button-label-color: var(--pristine);
+        }
+        paper-tooltip {
+            --paper-tooltip: {
+                font-style: normal;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+        paper-icon-button#prefs {
+            margin-right: 4px;
+        }
+        paper-icon-button#expand-toggle,
+        paper-icon-button#prefs.selected {
+            color: var(--interactive);
+        }
+        vw-workflow-item.hidden {
+            display: none;
+        }
+    </style>
+    <template>
+        <iron-ajax url="[[url]]" last-response="{{data}}" auto></iron-ajax>
+        <iron-ajax id="prefsajax" url="" on-response="_prefsResponse"></iron-ajax>
+        <div class="heading layout horizontal center-center">
+            <iron-icon  icon="vaadin-icons:cogs"></iron-icon>
+            <div class="heading-label flex">Workflows ({{_getCount(data)}})</div>
+            <div class="sorter layout horizontal center-center">
+                <div id="sort-by-left">activity</div><paper-toggle-button on-iron-change="sort_order"></paper-toggle-button><div id="sort-by-right">name</div>
+                <paper-tooltip position="left">Sort options</paper-tooltip>
+            </div>
+            <paper-icon-button id="expand-toggle" class="toggle" icon="[[_toggleIcon]]" on-tap="_toggleExpanded"></paper-icon-button>
+            <paper-tooltip for="expand-toggle" position="left">Show/Hide Details</paper-tooltip>
+        </div>
+        <template is="dom-if" if="[[_hasWorkflows(data)]]">
+            <div id="plist" class="list-container">
+                <template id="repeater" is="dom-repeat" items="{{data.workflows}}" as="workflow">
+                    <vw-workflow-item class$="{{_workflowClass(workflow.pref)}}" workflow="{{workflow}}" nonce="{{nonce}}"></vw-workflow-item>
+                </template>
+            </div>
+        </template>
+        <template is="dom-if" if="[[!_hasWorkflows(data)]]">
+            <div class="layout vertical center flex">
+                <div class="empty-message">
+                    <p><iron-icon icon="warning"></iron-icon> You are not yet involved in any workflow.</p>
+                </div>
+            </div>
+        </template>
+    </template>
+    <script>
+        (function () {
+            Polymer({
+                is: "vw-workflow-list",
+                properties: {
+                    data: Object,
+                    url: String,
+                    nonce: String,
+                    expanded: {
+                        type: Boolean,
+                        value: false
+                    },
+                    _toggleIcon: {
+                        type: String,
+                        computed: '_computeToggleIcon(expanded)'
+                    },
+                    _sortedByName: {
+                        type: Boolean,
+                        value: false
+                    }
+                },
+                _toggleExpanded: function(e) {
+                    this.expanded = !this.expanded;
+                    this._workflowsOpened(this.expanded);
+                },
+                _getItems: function() {
+                    return this.querySelectorAll("vw-workflow-item");
+                },
+                _getCount: function(data) {
+                    return (data.workflows) ? data.workflows.length : 0;
+                },
+                _hasWorkflows: function(data) {
+                    return (data.workflows && data.workflows.length > 0);
+                },
+                _workflowsOpened: function(opened) {
+                    var children = this._getItems();
+                    for (var i=0; i<children.length; i++) {
+                        children[i].opened = opened;
+                    }
+                },
+                _closeExpansion: function() {
+                    if (this.expanded) {
+                        this._toggleExpanded();
+                    } else {
+                        this._workflowsOpened(false);
+                    }
+                },
+                _computeToggleIcon: function(expanded) {
+                    return expanded ? 'icons:expand-less' : 'icons:expand-more';
+                },
+                prefsSettings: function(mode) {
+                    this._closeExpansion();
+                    var children = this._getItems();
+                    for (var i=0; i<children.length; i++) {
+                        var pitem = children[i];
+                        pitem.togglePref(mode);
+                        pitem.toggleClass("hidden", !pitem.workflow.pref && mode);
+                        pitem.updateStyles();
+                    }
+                    if (mode) {
+                        var requester = this.$.prefsajax;
+                        var params = {};
+                        for (i = 0; i < this.data.workflows.length; i++) {
+                            var workflow = this.data.workflows[i];
+                            params[workflow.shortname] = workflow.pref;
+                        }
+                        requester.url = "/dashboard/updateWorkflowPreferences";
+                        requester.params = {prefs: JSON.stringify(params)};
+                        requester.generateRequest();
+                    }
+                },
+                _prefsResponse: function(request) {
+                    var toast = document.querySelector("paper-toast#toast-notification");
+                    toast.show({text: "Dashboard preferences updated", duration: 3000});
+                },
+                _workflowClass: function(pref) {
+                    return (pref || this.prefsMode) ? "" : "hidden";
+                },
+                capitalize: function(s) {
+                    return s.charAt(0).toUpperCase() + s.slice(1);
+                },
+                sort_order: function(e) {
+                    var name_sort = e.target.checked;
+                    if (name_sort && !this.sortedByName) {
+                        this._closeExpansion();
+                        this.data.workflows.sort(function(a, b) {
+                           return a.name.localeCompare(b.name);
+                        });
+                        this.$.repeater.render();
+                        this._sortedByName = true;
+                    } else if (!name_sort && this._sortedByName) {
+                        this._closeExpansion();
+                        this.data.workflows.sort(function(a, b) {
+                            return (a.index < b.index) ? -1 : (a.index > b.index) ? 1 : 0;
+                        });
+                        this.$.repeater.render();
+                        this._sortedByName = false;
+                    }
+                }
+            });
+        })();
+    </script>
+</dom-module>

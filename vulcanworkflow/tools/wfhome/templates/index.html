@@ -1,0 +1,224 @@
+{% extends g.templates['polymer-project'] %}
+
+{% block title %}Workflow Dashboard{% endblock %}
+{% block subheading_prefix %}{{ c.project.name }}{% endblock %}{% block subheading %}workflow dashboard{% endblock %}
+
+{% block head %}
+    <style is="custom-style">
+        section {
+            min-width: 400px;
+        }
+        #organize-buttons {
+            margin: 2rem 0 0 0;
+        }
+        .empty-message {
+            color: var(--toptext);
+            fill: var(--toptext);
+            text-align: center;
+        }
+        .approve-button {
+            color: darkgreen;
+            fill: darkgreen;
+        }
+        .cancel-button,
+        .deny-button {
+            color: darkred;
+            fill: darkred;
+        }
+        .cancel-button {
+            margin-left: 39px;
+        }
+        .registration-request-email {
+            color: var(--toptext);
+        }
+        .info {
+            font-size: 1em;
+            font-style: italic;
+            font-family: Ubuntu, Roboto, sans-serif;
+            margin-top: -0.75em;
+            margin-bottom: 2em;
+        }
+        .profile-info {
+            margin-bottom: 12px;
+        }
+        .spacer {
+            width: 1rem;
+        }
+        .section-icon {
+            margin-right: .5em;
+        }
+        .section-icon#organize-icon {
+            padding: 7px 0px;
+        }
+        .padded-icon {
+            --iron-icon-height: 50px;
+            --iron-icon-width: 50px;
+            padding: 16px;
+            padding-bottom: 12px;
+            color: var(--interactive);
+        }
+        .team-icon {
+            height: 50px;
+            width: 50px;
+            margin-right: 14px;
+            padding-top: 32px;
+        }
+        .stats-container {
+            background-color: var(--diffuse);
+            padding: .75em;
+        }
+        .stats-container.large {
+            padding: 1.25em;
+        }
+        .stats-header {
+            background-color: var(--subheadingbar);
+            color: var(--pitch);
+            padding: 4px;
+            margin-top: 8px;
+            font-family: Ubuntu, Roboto, sans-serif;
+            font-variant: small-caps;
+            font-size: 20px;
+            border-bottom: 2px solid var(--pristine);
+        }
+        .invitations {
+            margin-top: 30px;
+        }
+        .badge {
+            margin-left: 8px;
+        }
+        #search-submit {
+            margin-left: 2px;
+        }
+        #search-files {
+            margin-top: 3em;
+        }
+        #dataset-search {
+            margin-top: 1em;
+        }
+        paper-tooltip {
+            --paper-tooltip: {
+                font-style: normal;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+        .listing-icon {
+            margin-right: 8px;
+        }
+        @media (max-width: 480px) {
+            section {
+                min-width: 250px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="layout horizontal wrap">
+        <section id="profile" class="paper-sheet small-margin small-padding layout vertical flex">
+            <h2 class="profile-info layout horizontal center-center">
+                <iron-image class="team-icon" src="{{ c.project.icon_url }}" sizing="contain"></iron-image>
+                Workflow Profile
+            </h2>
+            <div class="info layout horizontal center-center">Information about the workflow.</div>
+            <vw-workflow-profile url="profile_info" nonce="{{ h.get_csrf_value() }}"></vw-workflow-profile>
+            {% if wf_invitations|count > 0 %}
+                <pending-info icon="social:people" title="Invitations" count="{{wf_invitations|count}}">
+                {% for invite in wf_invitations %}
+                    <div class="layout horizontal center">
+                        <paper-button-link href="{{invite['team'].url()}}" class="flex">
+                            <div class="layout horizontal center left-justify flex">
+                                <iron-icon class="listing-icon" src="{{invite['team'].icon_url}}"></iron-icon>
+                                <span class="invite-label">
+                                {{invite['team'].name}}
+                                <paper-tooltip position="right">Invited Team</paper-tooltip>
+                                </span>
+                            </div>
+                        </paper-button-link>
+                        <a href="workflow_invitation_rescind/{{ invite.id }}" class="cancel-button">
+                            <paper-icon-button icon="cancel"></paper-icon-button>
+                            <paper-tooltip position="left">Cancel</paper-tooltip>
+                        </a>
+                    </div>
+                {% endfor %}
+                </pending-info>
+            {% endif %}
+        </section>
+        {% if visible_tools %}
+            <section id="tools" class="paper-sheet small-margin small-padding flex">
+                <h2 class="layout horizontal center-center">
+                    <iron-icon class="padded-icon" icon="vaadin-icons:tools"></iron-icon>
+                    Tools
+                </h2>
+                <div class="info layout horizontal center-center">Access and manage workflow tools.</div>
+                <vf-project-tool-list url="tools_info" count="{{ tools }}"></vf-project-tool-list>
+            </section>
+            <section id="activity" class="paper-sheet small-margin small-padding flex">
+                <h2 class="layout horizontal center-center">
+                    <iron-icon class="padded-icon" icon="vaadin-icons:time-forward" role="img"></iron-icon>
+                    Timeline
+                </h2>
+                <div class="info layout horizontal center-center">View workflow and tool activity.</div>
+                <vf-project-activity-list url="activity"></vf-project-activity-list>
+            </section>
+        {% endif %}
+        <section id="organize" class="paper-sheet small-margin small-padding layout vertical flex">
+            <h2 class="layout horizontal center-center">
+                <iron-icon id="organize-icon" class="section-icon" icon="social:group" role="img"></iron-icon>
+                People
+            </h2>
+            <div class="info layout horizontal center-center">View workflow members and roles.</div>
+            <vw-workflow-user-list url="users_info" nonce="{{ h.get_csrf_value() }}"></vw-workflow-user-list>
+            {% if invitations|count > 0 %}
+                <pending-info icon="social:people" title="Invitations" count="{{invitations|count}}">
+                {% for invite in invitations %}
+                    <div class="layout horizontal center">
+                        <paper-button-link href="{{invite['user'].url()}}" class="flex">
+                            <div class="layout horizontal center left-justify flex">
+                                <iron-icon class="listing-icon" src="{{invite['user'].icon_url()}}"></iron-icon>
+                                <span class="invite-label">
+                                {{invite['user'].display_name}}
+                                <paper-tooltip position="right">Invited User</paper-tooltip>
+                                </span>
+                            </div>
+                        </paper-button-link>
+                        <a href="invitation_rescind/{{ invite.id }}" class="cancel-button">
+                            <paper-icon-button icon="cancel"></paper-icon-button>
+                            <paper-tooltip position="left">Cancel</paper-tooltip>
+                        </a>
+                    </div>
+                {% endfor %}
+                </pending-info>
+            {% endif %}
+            {% if requests|count > 0 %}
+                <pending-info icon="social:people" title="Membership Requests" count="{{requests|count}}">
+                {% for request in requests %}
+                    <div class="layout horizontal center">
+                        <paper-button-link href="{{request['user'].url()}}" class="flex">
+                            <div class="layout horizontal center left-justify flex">
+                                <iron-icon class="listing-icon" src="{{request['user'].icon_url()}}"></iron-icon>
+                                <span class="request-label">
+                                {{request['user'].display_name}}
+                                <paper-tooltip position="right">Requesting user</paper-tooltip>
+                                </span>
+                            </div>
+                        </paper-button-link>
+                        <a href="membership_request_accept/{{ request.id }}" class="approve-button">
+                            <paper-icon-button icon="thumb-up"></paper-icon-button>
+                            <paper-tooltip position="left">Accept</paper-tooltip>
+                        </a>
+                        <a href="membership_request_decline/{{ request.id }}" class="deny-button">
+                            <paper-icon-button icon="thumb-down"></paper-icon-button>
+                            <paper-tooltip position="left">Decline</paper-tooltip>
+                        </a>
+                    </div>
+                {% endfor %}
+                </pending-info>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+{% endblock %}

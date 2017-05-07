@@ -1,0 +1,564 @@
+<!--
+<link rel="import" href="../../polymer/polymer.html">
+
+<link rel="import" href="../../iron-ajax/iron-ajax.html">
+<link rel="import" href="../../iron-icon/iron-icon.html">
+<link rel="import" href="../../iron-icons/iron-icons.html">
+
+<link rel="import" href="../../paper-autocomplete/paper-autocomplete.html">
+<link rel="import" href="../../paper-button/paper-button.html">
+<link rel="import" href="../../paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../paper-dialog/paper-dialog.html">
+<link rel="import" href="../../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../paper-input/paper-input.html">
+<link rel="import" href="../../paper-input/paper-textarea.html">
+<link rel="import" href="../../paper-tooltip/paper-tooltip.html">
+
+<link rel="import" href="../../file-upload/file-upload.html">
+<link rel="import" href="../dialog_style.html">
+<link rel="import" href="../vf-styles.html">
+-->
+
+<dom-module id="vw-workflow-create">
+    <style is="custom-style" include="vf-styles"></style>
+    <style include="dialog_style">
+        paper-autocomplete {
+            --paper-input-container-underline-focus: {
+                background-color: var(--pitch);
+            }
+            --paper-input-container-label-focus: {
+                color:  var(--interactive);
+            }
+        }
+        paper-autocomplete[invalid] {
+            --paper-input-container-underline-focus: {
+                background-color: var(--danger);
+            }
+            --paper-input-container-underline: {
+                background-color: var(--danger);
+            }
+            --paper-input-container-label: {
+                color: var(--danger);
+            }
+            --paper-input-container-label-focus: {
+                color: var(--danger);
+            }
+        }
+        paper-dialog{
+            color: var(--pitch);
+        }
+        paper-dialog .heading {
+            background-color: var(--headingbar);
+            color: var(--interactive);
+            margin-top: 0;
+            padding: 0 8px;
+        }
+        paper-dialog .heading #header-label {
+            color: var(--pristine);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        paper-dialog .heading #close {
+            min-width: 3em;
+            padding-right: 0;
+        }
+        paper-dialog #send-control {
+            margin-top: 16px;
+            margin-bottom: 0;
+            padding: 1em;
+            background-color: var(--subheadingbar);
+        }
+        paper-dialog {
+            margin: 0;
+            padding: 0;
+            width: 500px;
+            height: 75%;
+        }
+        paper-dialog #sections {
+            margin: 0;
+            padding: 0 8px;
+            margin-bottom: 8px;
+            height: 100%;
+            overflow: auto;
+        }
+        paper-dialog .instructions {
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+        paper-dialog .subheading {
+            background-color: var(--subheadingbar);
+            font-size: 16px;
+            font-style: normal;
+            font-weight: bold;
+            padding: 4px 2px;
+            margin: 12px 0;
+        }
+        paper-dialog .subheading .flex {
+           margin-top: 4px;
+        }
+        paper-dialog #heading-icon {
+            color: var(--interactive);
+            margin-right: 8px;
+        }
+        paper-dialog .subheading-icon {
+            color: var(--interactive);
+            margin-right: 4px;
+        }
+        paper-dialog .invitee-label-icon {
+            color: var(--pitch);
+            margin-right: 4px;
+            margin-top: 18px;
+        }
+        paper-dialog .invitee-icon {
+            color: var(--interactive);
+            margin-right: 4px;
+            margin-top: 18px;
+        }
+        paper-dialog .team-icon {
+            height: 80px;
+            width: 80px;
+            margin: 8px 24px;
+            color: var(--interactive);
+        }
+        paper-dialog .action {
+            min-width: 3em;
+            cursor: pointer;
+        }
+        paper-dialog .optional {
+            font-style: normal;
+            margin-right: 8px;
+            font-size: 14px;
+            color: var(--subheadingtext);
+        }
+        paper-dialog #invitation-controls {
+            margin-top: 8px;
+        }
+        paper-dialog .invitations {
+            padding-bottom: 20px;
+        }
+        #summary-feedback,
+        #founder-feedback,
+        #name-feedback {
+            display: none;
+        }
+        p.skimpy {
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+        paper-dialog .feedback {
+            padding: .5em;
+        }
+        paper-dialog .feedback-icon {
+            color: var(--danger);
+            margin-right: 4px;
+        }
+        paper-dialog .feedback-text {
+            color: var(--subheadingtext);
+        }
+        paper-dialog .imaging {
+            min-height: 220px;
+        }
+        paper-dialog .imaging-content {
+            min-height: 92px;
+        }
+        file-upload {
+            --file-upload-button: {
+                color: var(--interactive);
+                background-color: var(--headingbar);
+                margin: 20px 18px 20px -14px;
+                min-width: 3em;
+            }
+            --file-upload-upload-border: {
+                width: 50px;
+                height: 50px;
+                margin-bottom: 8px;
+            }
+        }
+        paper-input, paper-textarea {
+            --paper-input-container-underline-focus: {
+                background-color: var(--pitch);
+            }
+            --paper-input-container-label-focus: {
+                color: var(--interactive);
+            }
+        }
+        paper-tooltip {
+            --paper-tooltip: {
+                font-style: normal;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+        paper-checkbox {
+            --paper-checkbox-checked-color: var(--pitch);
+        }
+        @media (max-width: 480px) {
+            paper-dialog {
+                width: 360px;
+            }
+        }
+        @media (max-width: 320px) {
+            paper-dialog {
+                width: 300px;
+            }
+        }
+    </style>
+    <template>
+        <iron-ajax id="initiatorsloader" on-response="_initiatorsResponse"></iron-ajax>
+        <iron-ajax id="teamsloader" last-response="{{teams}}"></iron-ajax>
+        <paper-dialog id="createdialog" class="layout vertical flex" modal>
+            <div class="heading layout horizontal center-center">
+                <iron-icon id="heading-icon" icon="vaadin-icons:cogs"></iron-icon>
+                <div id="header-label" class="flex">Create A {{kind}}</div>
+                <paper-button id="close" dialog-dismiss><iron-icon icon="close"></iron-icon></paper-button>
+                <paper-tooltip for="close" position="left">Cancel</paper-tooltip>
+            </div>
+            <div id="sections" class="flex">
+                <div class="instructions">Scroll down for more settings.</div>
+                <div class="subheading layout horizontal center-center">
+                    <iron-icon class="subheading-icon" icon="icons:settings"></iron-icon>
+                    <div class="flex">Identify</div>
+                    <div class="optional">required</div>
+                </div>
+                <paper-input id="name" label="{{kind}} Name"
+                             auto-validate pattern="[A-Za-z]+[A-Za-z0-9 -]*"
+                             error-message="Letter, then letters, numbers, dashes, and spaces."
+                             on-blur="_nameCheck" on-focus="_nameFocus">
+                </paper-input>
+                <div id="name-feedback" class="feedback layout horizontal center-center">
+                    <iron-icon class="feedback-icon" icon="icons:block"></iron-icon>
+                    <div class="feedback-text">{{nameFeedback}}</div>
+                </div>
+                <paper-textarea id="summary" label="Single Line Description"
+                                on-focus="_summaryFocus"></paper-textarea>
+                <div id="summary-feedback" class="feedback layout horizontal center-center">
+                    <iron-icon class="feedback-icon" icon="icons:block"></iron-icon>
+                    <div class="feedback-text">Please provide a single line description.</div>
+                </div>
+                <div class="subheading layout horizontal center-center">
+                    <iron-icon class="subheading-icon" icon="social:people"></iron-icon>
+                    <div class="flex">Initiating Team</div>
+                    <div class="optional">required</div>
+                </div>
+                <div class="instructions flex">
+                    The team initiating this workflow.
+                </div>
+                <paper-autocomplete id="founder-team" label="Initiating Team"
+                                    source="{{initiatorAutoCompleteItems}}"
+                                    event-namespace="."
+                                    on-autocomplete.blur="_founderCheck"
+                                    on-autocomplete.selected="_founderSelected"
+                                    class="flex" show-clear></paper-autocomplete>
+                <div id="founder-feedback" class="feedback layout horizontal center-center">
+                    <iron-icon class="feedback-icon" icon="icons:block"></iron-icon>
+                    <div class="feedback-text">No team with that name is known.</div>
+                </div>
+                <div class="subheading layout horizontal center-center">
+                    <iron-icon class="subheading-icon" icon="social:people"></iron-icon>
+                    <div class="flex">Invite Teams</div>
+                    <div class="optional">optional</div>
+                </div>
+                <div class="instructions flex">
+                    Invite teams to join the workflow.
+                </div>
+                <div id="invitation-controls" class="layout horizontal center-center">
+                    <paper-button id="add-user" class="action" raised on-tap="_addInvitee">
+                        <iron-icon icon="social:group-add"></iron-icon>
+                    </paper-button>
+                    <paper-tooltip for="add-user" position="left">Add team invitation</paper-tooltip>
+                </div>
+                <div class="invitations flex">
+                    <template id="repeater" is="dom-repeat" items="{{invitees}}">
+                        <div class="layout horizontal center flex">
+                            <iron-icon class="invitee-label-icon" icon="{{_getInviteeIcon(item)}}"></iron-icon>
+                            <paper-autocomplete id="name" label="Name" source="{{teamAutoCompleteItems}}"
+                                                value="{{item.name}}" invalid
+                                                event-namespace="."
+                                                on-autocomplete.blur="_teamCheck"
+                                                on-autocomplete.selected="_teamSelected"
+                                                class="flex"></paper-autocomplete>
+                            <iron-icon id="delete-invite" class="action invitee-icon" icon="icons:delete" on-tap="_removeInvitee"></iron-icon>
+                            <paper-tooltip for="delete-invite" position="left">Delete invitation</paper-tooltip>
+                        </div>
+                    </template>
+                </div>
+                <paper-textarea id="invitation_text" label="Custom Invitation Message" value="Please join my {{_lowerCase(kind)}}."></paper-textarea>
+                <div class="subheading layout horizontal center-center">
+                    <iron-icon class="subheading-icon" icon="vaadin-icons:picture"></iron-icon>
+                    <div class="flex">Custom Icon</div>
+                    <div class="optional">optional</div>
+                </div>
+                <div class="instructions flex">
+                    Custom icons help identify workflows.
+                    Use images with square aspect ratios.
+                </div>
+                <div class="imaging layout vertical center-center flex">
+                    <div class="imaging-content layout horizontal center flex">
+                        <iron-image class="team-icon" src="{{screen}}" sizing="cover"></iron-image>
+                    </div>
+                    <file-upload id="upload" class="imaging-content flex" droppable raised progress-hidden drop-text="Drop file here" accept="image/*" on-before-upload="_uploadedImage">
+                        <iron-icon id="choose-file" class="button-icon" icon="icons:add-box"></iron-icon>
+                    </file-upload>
+                    <div class="instructions">PNG, GIF, or JPG formats.</div>
+                </div>
+            </div>
+            <div id="send-control" class="layout horizontal center-center">
+                <paper-button id="send" raised tabindex="-1" on-tap="_processRequest">
+                    <div class="container layout horizontal center-center">
+                        <iron-icon icon="check-circle"></iron-icon>
+                        <div class="label" style="margin-left: 6px; padding-right: 3px;">Submit</div>
+                    </div>
+                </paper-button>
+            </div>
+            </paper-dialog>
+        </paper-dialog>
+    </template>
+    <script>
+        (function () {
+            Polymer({
+                is: "vw-workflow-create",
+                properties: {
+                    neighborhoods: {
+                        type: Object,
+                        value: function() { return {projects: "projects", workflows: "workflows"}; }
+                    },
+                    kind: String,
+                    founder: String,
+                    nonce: String,
+                    initiators: Object,
+                    teams: Object,
+                    screen: Object,
+                    nameFeedback: String,
+                    invitees: {
+                        type: Array,
+                        value: function() { return []; }
+                    },
+                    initiatorAutoCompleteItems: {
+                        type: Array,
+                        computed: "_makeTeamAutoCompleteItems(initiators)"
+                    },
+                    teamAutoCompleteItems: {
+                        type: Array,
+                        computed: "_makeTeamAutoCompleteItems(teams)"
+                    }
+                },
+                _makeURL: function(neighborhood, s) {
+                    return "/" + this.neighborhoods[neighborhood] + "/" + s;
+                },
+                showDialog: function(kind, founder) {
+                    this.founder = undefined;
+                    this.$.initiatorsloader.url = this._makeURL("projects", "workflows_initiating_projects");
+                    this.$.initiatorsloader.generateRequest();
+                    this.$.teamsloader.url = this._makeURL("projects", "workflows_eligible_projects");
+                    this.$.teamsloader.generateRequest();
+                    this.screen = this._makeURL("projects", "project_icon_url");
+                    this.$.createdialog.toggle();
+                    this.$.createdialog.notifyResize();
+                },
+                _dataURLtoBlob: function(dataurl) {
+                    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                    while(n--){
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    return new Blob([u8arr], {type:mime});
+                },
+                _blobToDataURL: function(blob, callback) {
+                    var a = new FileReader();
+                    var self = this;
+                    a.onload = function(e) {callback(e.target.result, self);};
+                    a.readAsDataURL(blob);
+                },
+                _loadPreviewImage: function(dataURL, self) {
+                    self.screen = dataURL;
+                },
+                _uploadedImage: function(e) {
+                    var the_file = e.target.files[0];
+                    this.filename = the_file.name;
+                    this._blobToDataURL(the_file, this._loadPreviewImage);
+                    var uploader = this.querySelector("#upload");
+                    uploader.cancel(the_file);
+                    uploader.clear();
+                },
+                _makeTeamAutoCompleteItems: function(teams) {
+                    var items = [];
+                    for (var t in teams) {
+                        items.push({text: t, value: teams[t]});
+                    }
+                    return items.sort(function(a, b) {
+                        return a.text.localeCompare(b.text);
+                    });
+                },
+                _singleValue: function(o) {
+                    var count = 0;
+                    var key;
+                    for (k in o) {
+                        count++;
+                        key = k;
+                    }
+                    return (count == 1) ? key : undefined;
+                },
+                _initiatorsResponse: function(e) {
+                    this.initiators = e.detail.response;
+                    var one = this._singleValue(this.initiators);
+                    if (one) {
+                        var option = {text: one, value: this.initiators[one]};
+                        this.$["founder-team"].setOption(option);
+                    }
+                },
+                _lowerCase: function(s) {
+                    return s.toLowerCase();
+                },
+                _nameFocus: function(e) {
+                    this.querySelector("#name-feedback").style.display = "none";
+                },
+                _summaryFocus: function(e) {
+                    this.querySelector("#summary-feedback").style.display = "none";
+                },
+                _nameCheck: function(e) {
+                    var name = this.$.name.value;
+                    this.nameFeedback = "This name is currently being used.";
+                    var is_current = name in this.teams;
+                    if (name) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.domHost = this;
+                        xhr.onload = function (e) {
+                            var response = JSON.parse(e.target.response);
+                            var display = (response.found) ? "flex" : "none";
+                            var host = e.target.domHost;
+                            host.querySelector("#name").setAttribute('invalid_exists', response.found);
+                            host.querySelector("#name-feedback").style.display = display;
+                        };
+                        var url = "/workflows/team_exists";
+                        xhr.open("GET", url + "?name=" + name, true);
+                        xhr.send();
+                    } else {
+                        this.querySelector("#name-feedback").style.display = "none";
+                    }
+                },
+                _founderCheck: function(e) {
+                    var founder = e.target.text;
+                    var host = e.target.domHost;
+                    var display = (founder && !(founder in host.initiators)) ? "flex" : "none";
+                    host.querySelector("#founder-feedback").style.display = display;
+                },
+                _founderSelected: function(e) {
+                    var host = e.target.domHost;
+                    host.querySelector("#founder-feedback").style.display = "none";
+                },
+                _teamCheck: function(e) {
+                    var name = e.detail.text;
+                    var valid = name in this.teams;
+                    if (valid) {
+                        e.target.removeAttribute('invalid');
+                    } else {
+                        e.target.setAttribute('invalid', true);
+                    }
+                    this.updateStyles();
+                },
+                _teamSelected: function(e) {
+                    e.target.removeAttribute('invalid');
+                    this.updateStyles();
+                },
+                _addInvitee: function() {
+                    this.unshift('invitees', {type: "team", name: ""});
+                },
+                _removeInvitee: function(e) {
+                    var model = e.model;
+                    var index = this.invitees.indexOf(model.item);
+                    this.splice('invitees', index, 1)
+                },
+                _getInviteeIcon: function(item) {
+                   return "social:person";
+                },
+                _processRequest: function() {
+                    var dialog = this.$.createdialog;
+                    var formData = new FormData();
+                    formData.append("_session_id", this.nonce);
+                    // required: name
+                    var name_input = dialog.querySelector("#name");
+                    if (!name_input.value || name_input.invalid || name_input.getAttribute('invalid_exists') == "true") {
+                        if (!name_input.value) {
+                            this.nameFeedback = "Please provide a name.";
+                            this.querySelector("#name-feedback").style.display = "flex";
+                        } else {
+                            name_input.focus();
+                        }
+                        return;
+                    } else {
+                        formData.append('name', name_input.value)
+                    }
+                    // required: summary
+                    var summary_input = dialog.querySelector("#summary");
+                    if (!summary_input.value) {
+                        this.querySelector("#summary-feedback").style.display = "flex";
+                        return;
+                    } else {
+                        formData.append('summary', summary_input.value)
+                    }
+                    //
+                    var founder_input = dialog.querySelector("#founder-team");
+                    if (!(founder_input.text || founder_input.text in this.initiators)) {
+                        this.querySelector("#founder-feedback").style.display = "flex";
+                        founder_input.focus();
+                        return;
+                    } else {
+                        formData.append('founder', this.initiators[founder_input.text]);
+                    }
+                    // validated: invitations
+                    if (this.invitees.length) {
+                        var validated_invitees = [],
+                            teams_lookup = {};
+                        for (var t in this.teams) {
+                            teams_lookup[this.teams[t]] = t;
+                        }
+                        for (var i=0; i<this.invitees.length; i++) {
+                            var invitee = this.invitees[i];
+                            if (invitee.name && invitee.name in teams_lookup) {
+                                validated_invitees.push(invitee.name);
+                            }
+                        }
+                        if (validated_invitees.length) {
+                            var msg = this.querySelector("#invitation_text");
+                            formData.append("invitation_msg", msg.value);
+                            formData.append("invitees", JSON.stringify(validated_invitees));
+                        }
+                    }
+                    // icon
+                    if (this.screen.indexOf("data:") == 0) {
+                        var filename = (this.filename) ? this.filename : "camera_image.png";
+                        var blob = this._dataURLtoBlob(this.screen);
+                        formData.append("icon", blob, filename);
+                    }
+                    var xhr = new XMLHttpRequest();
+                    xhr.domHost = this;
+                    xhr.onload = function(e) {
+                        var toast = document.querySelector("paper-toast#toast-notification");
+                        var host = e.target.domHost;
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            var ret = (typeof xhr.response == 'string') ? JSON.parse(xhr.response) : xhr.response;
+                            if (ret.status == 'success') {
+                                toast.show({text: host.kind + " created", duration: 3000});
+                                if (location.href.endsWith("dashboard")) {
+                                    location.reload(true);
+                                } else {
+                                    location.href = "/dashboard";
+                                }
+                            } else {
+                                toast.show({text: host.kind + " creation failed", duration: 3000});
+                            }
+                        } else {
+                            toast.show({text: host.kind + " creation failed", duration: 3000});
+                        }
+                    };
+                    var url = this._makeURL("workflows", "do_create_workflow");
+                    xhr.open("POST", url, true);
+                    xhr.responseType = "json";
+                    xhr.send(formData);
+                    dialog.close();
+                }
+            });
+        })();
+    </script>
+
+</dom-module>
