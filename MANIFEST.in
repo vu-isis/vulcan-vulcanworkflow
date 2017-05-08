@@ -1,0 +1,3 @@
+recursive-include vulcanworkflow/templates *
+recursive-include vulcanworkflow/static *
+recursive-include vulcanworkflow/data *
