@@ -47,6 +47,10 @@ WorkflowStep to be authorized according to participating teams.
 
 # Release Notes
 
+## Version 2.0.1
+
+Minor Python packaging changes.
+
 ## Version 2.0.0
 
 This release is compatible with the Ubuntu Xenial LTS.

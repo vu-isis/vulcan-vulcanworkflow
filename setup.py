@@ -54,6 +54,7 @@ setup(
             ('static/**', 'ignore', None)]
     },
     entry_points="""
-    """
+    """,
+    zip_safe=False
 )
 
